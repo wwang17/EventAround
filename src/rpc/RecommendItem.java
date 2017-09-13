@@ -1,9 +1,7 @@
 package rpc;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -13,24 +11,23 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 
-import db.DBConnection;
-import db.DBConnectionFactory;
+import algorithm.Recommendation;
+import algorithm.GeoRecommendation;
 import entity.Item;
 
 /**
- * Servlet implementation class SearchItem
+ * Servlet implementation class RecommendItem
  */
-@WebServlet("/search")
-public class SearchItem extends HttpServlet {
+@WebServlet("/recommendation")
+public class RecommendItem extends HttpServlet {
   private static final long serialVersionUID = 1L;
-  private DBConnection conn = DBConnectionFactory.getDBConnection();
 
   /**
-   * Default constructor.
+   * @see HttpServlet#HttpServlet()
    */
-  public SearchItem() {
+  public RecommendItem() {
+    super();
     // TODO Auto-generated constructor stub
   }
 
@@ -42,27 +39,10 @@ public class SearchItem extends HttpServlet {
     String userId = request.getParameter("user_id");
     double lat = Double.parseDouble(request.getParameter("lat"));
     double lon = Double.parseDouble(request.getParameter("lon"));
-    // Term can be empty or null.
-    String term = request.getParameter("term");
-    List<Item> items = conn.searchItems(userId, lat, lon, term);
-    List<JSONObject> list = new ArrayList<>();
+    Recommendation recommendation = new GeoRecommendation();
+    List<Item> items = recommendation.recommendItems(userId, lat, lon);
+    RpcHelper.writeJsonArray(response, new JSONArray(items));
 
-    Set<String> favorite = conn.getFavoriteItemIds(userId);
-    try {
-      for (Item item : items) {
-        // Add a thin version of restaurant object
-        JSONObject obj = item.toJSONObject();
-        // Check if this is a favorite one.
-        // This field is required by frontend to correctly display favorite items.
-        obj.put("favorite", favorite.contains(item.getItemId()));
-
-        list.add(obj);
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-    JSONArray array = new JSONArray(list);
-    RpcHelper.writeJsonArray(response, array);
   }
 
   /**
