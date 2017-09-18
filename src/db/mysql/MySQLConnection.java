@@ -102,11 +102,14 @@ public class MySQLConnection implements DBConnection {
   
   @Override
   public Set<Item> getFavoriteItems(String userId) {
+    Set<String> itemIds = getFavoriteItemIds(userId);
     Set<Item> favoriteItems = new HashSet<>();
     try {
-        String sql = "SELECT * from items, history WHERE items.item_id = history.item_id AND history.user_id = ?";
+
+      for (String itemId : itemIds) {
+        String sql = "SELECT * from items WHERE item_id = ? ";
         PreparedStatement statement = conn.prepareStatement(sql);
-        statement.setString(1, userId);
+        statement.setString(1, itemId);
         ResultSet rs = statement.executeQuery();
         ItemBuilder builder = new ItemBuilder();
 
@@ -134,9 +137,17 @@ public class MySQLConnection implements DBConnection {
         // Join categories information into builder.
         // But why we do not join in sql? Because it'll be difficult
         // to set it in builder.
-        Set<String> categories = getCategories(rs.getString("item_id"));
+        sql = "SELECT * from categories WHERE item_id = ?";
+        statement = conn.prepareStatement(sql);
+        statement.setString(1, itemId);
+        rs = statement.executeQuery();
+        Set<String> categories = new HashSet<>();
+        while (rs.next()) {
+          categories.add(rs.getString("category"));
+        }
         builder.setCategories(categories);
         favoriteItems.add(builder.build());
+      }
     } catch (SQLException e) {
       e.printStackTrace();
     }
